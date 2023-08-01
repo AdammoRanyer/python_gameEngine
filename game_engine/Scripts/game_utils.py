@@ -11,7 +11,7 @@ def start_game():
         Nenhum
     
     Return:
-        window e clock
+        window
     """
     
     os.environ["SDL_VIDEO_CENTERED"] = "1"
@@ -19,9 +19,8 @@ def start_game():
     pg.display.set_caption(c["game_name"])
     window = pg.display.set_mode(c["window_originalSize"])
     set_resolution(window, c["window_resolution"])
-    clock = pg.time.Clock()
     
-    return window, clock
+    return window
 
 def exitGame_event(event):
     """
@@ -106,46 +105,102 @@ def set_resolution(window, resolution):
         
         window = pg.display.set_mode(x)
 
-def createObject(d_objects, object):
+def createObject(d_objects, object, spriteGroup=None):
     """
     Cria objetos.
     
     Parâmetros:
         d_objects (dict) - dicionário de objetos
         object (classe de objetos) - objeto criado
+        spriteGroup (pygame.sprite.LayeredUpdates) - grupo de sprites
     
     Return:
         d_objects atualizado
     """
     
     d_objects[object.name] = object
+    if spriteGroup != None: spriteGroup.add(object, layer=object.zOrder)
 
-def render(window, d_objects):
+def drawInScreen(window, spriteGroup):
     """
-    Renderiza objetos na tela com ordem definida.
+    Renderiza objetos na tela.
     
     Parâmetros:
         window (pygame.surface.Surface) - janela do pygame
-        d_objects (dict) - dicionário de objetos
+        spriteGroup (pygame.sprite.LayeredUpdates) - grupo de sprites
     
     Return:
-        Objetos renderizados na janela
+        Objetos renderizados na janela    
     """
-
+    
     surface=pg.Surface(c["window_originalSize"])
     surface.fill(c["background_color"])
-    for i in sorted(d_objects, key=lambda x: d_objects[x].zOrder):
-        d_objects[i].render(surface)
+    spriteGroup.draw(surface)
     if c["window_resolution"] > c["monitor_size"][0] - (c["window_originalSize"][0] * c["window_resolution"]):
         window.blit(pg.transform.scale(surface, (c["window_originalSize"][0] * c["window_resolution"], c["window_originalSize"][1] * c["window_resolution"])), c["window_position"])
     else:
         window.blit(pg.transform.scale(surface, (c["window_originalSize"][0] * c["window_resolution"], c["window_originalSize"][1] * c["window_resolution"])), c["window_position"])
+
+def objects_name(d_objects):
+    """
+    Varre e captura nome da cada objeto.
+    
+    Parâmetros:
+        d_objects (dict) - dicionário de objetos
+    
+    Return:
+        Lista com nome dos objetos
+    """
+    
+    l_names = []
+    for i in d_objects: l_names.append(d_objects[i].name)
+    
+    return l_names
+
+def objects_position(d_objects):
+    """
+    Varre e captura nome e posição da cada objeto.
+    
+    Parâmetros:
+        d_objects (dict) - dicionário de objetos
+    
+    Return:
+        String com informações 
+    """
+    
+    positions = ""
+    counter = 0
+    for i in d_objects: 
+        counter += 1
+        if counter == len(d_objects):
+            positions += d_objects[i].name + ": [" + str(d_objects[i].rect.x) + ", " + str(d_objects[i].rect.y) + "]"
+        else:
+            positions += d_objects[i].name + ": [" + str(d_objects[i].rect.x) + ", " + str(d_objects[i].rect.y) + "]\n"
+    
+    return positions
+
+def flipSurface(surface, x=True, y=False):
+    """
+    Inverte uma superfície do pygame.
+    
+    Parâmetros:
+        surface (pygame.surface.Surface) - imagem
+        x (bool) - eixo x
+        y (bool) - eixo y
+    
+    Return:
+        Imagem invertida
+    """
+    
+    surface = pg.transform.flip(surface, x, y)
+    
+    return surface
  
 class Text:
     """
     Classe para criação de objetos do tipo Text.
     """
-    def __init__(self, name, font="Comic Sans", size=16, color=[255, 255, 255], text="Olá mundo!", position=[0, 0], zOrder=0, visible=True):
+    def __init__(self, name, font="Comic Sans", size=16, color=[255, 255, 255], text="Olá mundo!", position=[0, 0], visible=True, zOrder=0):
         """
         Constrói objeto Text.
         
@@ -157,8 +212,8 @@ class Text:
             color (list) - cor da fonte
             text (str) - texto
             position (list) - posição do Text
-            zOrder (int) - ordenação na janela
             visible (bool) - visibilidade do objeto
+            zOrder (int) - ordenação na janela
         
         Return:
             Objeto
@@ -170,10 +225,10 @@ class Text:
         self.color = color
         self.text = text
         self.position = position
-        self.zOrder = zOrder
         self.visible = visible
+        self.zOrder = zOrder
     
-    def render(self, window):
+    def draw(self, window):
         """
         Renderiza objetos do tipo Text.
         
@@ -188,7 +243,7 @@ class Text:
         if self.visible == True:
             lines = self.text.split("\n")
             for i in range(len(lines)):
-                position = (self.position[0], self.size * i)
+                position = (self.position[0], (self.size + 4) * i)
                 window.blit(self.font.render(lines[i], True, self.color), position)
  
     def switch_visible(self):
@@ -207,39 +262,37 @@ class Text:
         else:
             self.visible = True
 
-class SpriteObject:
+class SpriteObject(pg.sprite.Sprite):
     """
     Classe para criação de objetos do tipo SpriteObject.
     """
-    def __init__(self, name, surface=pg.Surface((16, 16)), position=[0, 0], size=[16, 16], color=[255, 0, 0], zOrder=0, visible=True):
+    def __init__(self, name, position=[0, 0], image=pg.Surface((16, 16)), animations={}, visible=True, zOrder=0):
         """
         Constrói objeto SpriteObject.
         
         Parâmetros:
             self (game_utils.Text) - objeto da classe Text
             name (str) - nome do objeto
-            surface (pygame.surface.Surface) - objeto pygame para representar imagens
-            position (list) - posição do SpriteObject
-            size (list) - tamanho do SpriteObject
-            color (list) - cor do SpriteObject
-            zOrder (int) - ordenação na janela
+            rect (pygame.rect.Rect) - objeto pygame para armazenar coordenadas retangulares
+            image (pygame.surface.Surface) - objeto pygame para representar imagens
+            animations (dict) - dicionário com todas as sprites/animações
             visible (bool) - visibilidade do objeto
+            zOrder (int) - ordenação na janela
         
         Return:
             Objeto     
         """    
         
+        pg.sprite.Sprite.__init__(self)
         self.name = name
-        self.position = position
-        self.size = size
-        self.color = color
-        self.zOrder = zOrder
+        self.rect = pg.Rect((position[0], position[1], 0, 0))
+        self.image = image
+        self.image.set_colorkey(c["sprites_colorKey"])
+        self.animations = animations
         self.visible = visible
-        self.sprite = surface
-        #self.sprite.fill(self.color)
-        self.sprite.set_colorkey((253, 77, 211))
+        self.zOrder = zOrder
     
-    def render(self, window):
+    def draw(self, window):
         """
         Renderiza objetos do tipo SpriteObject.
         
@@ -252,5 +305,4 @@ class SpriteObject:
         """
         
         if self.visible == True:
-            #pg.draw.rect(window, self.color, pg.Rect(self.position[0], self.position[1], self.size[0], self.size[1]))
-            window.blit(self.sprite, self.position)
+            window.blit(self.image, self.position)
