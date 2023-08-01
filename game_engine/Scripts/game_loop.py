@@ -16,8 +16,8 @@ def load_scene(scene=c["scene"]):
         Objetos da cena criados
     """
     
-    d_objects = {}
-    spriteGroup = pg.sprite.LayeredUpdates()
+    c["d_objects"].clear()
+    c["spriteGroup"] = pg.sprite.LayeredUpdates()
     def load_sprites(spriteSheet, order):
         """
         Carrega sprites de um objeto.
@@ -58,21 +58,17 @@ def load_scene(scene=c["scene"]):
             "spriteSheet_0": pg.image.load(os.path.join(c["dir_assets"], "spriteSheet_0.png")).convert()
         }
         d_animations = load_sprites(d_sprites["spriteSheet_0"], "p1")
-        gu.createObject(d_objects, gu.SpriteObject(name="p1", position=[120, 112], image=d_animations["idle_1"][0], animations=d_animations), spriteGroup)
+        gu.SpriteObject(name="p1", position=[120, 112], image=d_animations["idle_1"][0], animations=d_animations)
         d_animations = load_sprites(d_sprites["spriteSheet_0"], "bg_0")
-        gu.createObject(d_objects, gu.SpriteObject(name="bg_0", position=[0, 0], image=d_animations["bg_0"][0], zOrder=-1), spriteGroup)
-        gu.createObject(d_objects, gu.SpriteObject(name="bg_1", position=[0, -240], image=d_animations["bg_0"][0], zOrder=-2), spriteGroup)
-        
-    return d_objects, spriteGroup
+        gu.SpriteObject(name="bg_0", position=[0, 0], image=d_animations["bg_0"][0], zOrder=-1)
+        gu.SpriteObject(name="bg_1", position=[0, -240], image=d_animations["bg_0"][0], zOrder=-2)
 
-def play_scene(canRender, d_objects, spriteGroup, scene):
+def play_scene(canRender, scene):
     """
     Toca a cena.
     
     Parâmetros:
         canRender (bool) - 
-        d_objects (dict) - objetos que compõem a cena
-        spriteGroup (pygame.sprite.LayeredUpdates) - grupo de sprites
         scene (str) - nome da cena
     
     Return:
@@ -82,41 +78,43 @@ def play_scene(canRender, d_objects, spriteGroup, scene):
     if scene == "stage 1":
         for event in pg.event.get():
             gu.exitGame_event(event)
-            if(gu.checkInput_event(event, c["key_1"])): 
+            if gu.checkInput_event(event, c["key_1"]): 
                 if c["window_resolution"] != 1:
                     gu.set_resolution(window, 1)
                     debugText_0.position[0] = c["window_position"][0]
-            elif(gu.checkInput_event(event, c["key_2"])): 
+            elif gu.checkInput_event(event, c["key_2"]): 
                 if c["window_resolution"] != 2:
                     gu.set_resolution(window, 2)
                     debugText_0.position[0] = c["window_position"][0]
-            elif(gu.checkInput_event(event, c["key_3"])): 
+            elif gu.checkInput_event(event, c["key_3"]): 
                 if c["window_resolution"] != 3:
                     gu.set_resolution(window, 3)
                     debugText_0.position[0] = c["window_position"][0]
-            elif(gu.checkInput_event(event, c["key_4"])): 
+            elif gu.checkInput_event(event, c["key_4"]): 
                 if c["window_resolution"] != 4:
                     gu.set_resolution(window, 4)
                     debugText_0.position[0] = c["window_position"][0]                    
-            elif(gu.checkInput_event(event, c["key_5"])): 
+            elif gu.checkInput_event(event, c["key_5"]): 
                 if c["window_resolution"] != 0:
                     gu.set_resolution(window, 0)
                     debugText_0.position[0] = c["window_position"][0]
-            if(gu.checkInput_event(event, c["key_r"])): return ("restart scene", scene)
-            if(gu.checkInput_event(event, c["key_t"])): debugText_0.switch_visible()
+            if gu.checkInput_event(event, c["key_r"]): return ("restart scene", scene)
+            if gu.checkInput_event(event, c["key_t"]): gu.switch_visible(debugText_0)
+            if gu.checkInput_event(event, c["key_return"]): gu.pause()
 
         if canRender:
-            if(gu.checkInput(c["key_rightArrow"])): d_objects["p1"].rect.x+=2
-            if(gu.checkInput(c["key_leftArrow"])): d_objects["p1"].rect.x-=2
-            if(gu.checkInput(c["key_upArrow"])): d_objects["p1"].rect.y-=2
-            if(gu.checkInput(c["key_downArrow"])): d_objects["p1"].rect.y+=2        
-        
-            d_objects["bg_0"].rect.y+=2
-            if d_objects["bg_0"].rect.y >= 240:
-                d_objects["bg_0"].rect.y = 0
-            d_objects["bg_1"].rect.y = d_objects["bg_0"].rect.y-240            
+            if c["game_paused"] == False:
+                if(gu.checkInput(c["key_rightArrow"])): c["d_objects"]["p1"].rect.x+=2
+                if(gu.checkInput(c["key_leftArrow"])): c["d_objects"]["p1"].rect.x-=2
+                if(gu.checkInput(c["key_upArrow"])): c["d_objects"]["p1"].rect.y-=2
+                if(gu.checkInput(c["key_downArrow"])): c["d_objects"]["p1"].rect.y+=2        
             
-            gu.drawInScreen(window, spriteGroup)
+                c["d_objects"]["bg_0"].rect.y+=2
+                if c["d_objects"]["bg_0"].rect.y >= 240:
+                    c["d_objects"]["bg_0"].rect.y = 0
+                c["d_objects"]["bg_1"].rect.y = c["d_objects"]["bg_0"].rect.y-240
+            
+            #gu.drawInScreen(window)
 
 window = gu.start_game()
 clock = pg.time.Clock()
@@ -126,9 +124,10 @@ unprocessed = 0
 time_1 = time.perf_counter()
 debugText_0 = gu.Text(name="debugText_0")
 #debugText_0.switch_visible()
-d_objects, spriteGroup = load_scene(c["scene"])
+load_scene(c["scene"])
 
 while 1:
+    """
     canRender = False
     time_2 = time.perf_counter()
     unprocessed += time_2 - time_1
@@ -136,17 +135,22 @@ while 1:
     while unprocessed >= frame:
         unprocessed -= frame
         canRender = True
+    """
 
-    scene = play_scene(canRender, d_objects, spriteGroup, c["scene"])
-    if scene != None and scene[0] == "restart scene": 
-        d_objects, spriteGroup = load_scene(scene[1])   
+    scene = play_scene(canRender, c["scene"])
+    if scene != None and scene[0] == "restart scene":
+        if c["game_paused"]: gu.pause()
+        load_scene(scene[1])
     
     if canRender == True:
+        """
         text_debug = \
-            "qtd_objs: " + str(len(d_objects)) + "\n" \
-            + gu.objects_position(d_objects)
+            "qtd_objs: " + str(len(c["d_objects"])) + "\n" \
+            + gu.objects_position()
         debugText_0.text = text_debug        
         debugText_0.draw(window)
+        """
+        gu.drawInScreen(window)
         pg.display.update()
     
-    #clock.tick(c["FPS"])
+    clock.tick(c["FPS"])

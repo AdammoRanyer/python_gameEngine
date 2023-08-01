@@ -17,7 +17,7 @@ def start_game():
     os.environ["SDL_VIDEO_CENTERED"] = "1"
     pg.init()
     pg.display.set_caption(c["game_name"])
-    window = pg.display.set_mode(c["window_originalSize"])
+    window = pg.display.set_mode(c["window_originalSize"], pg.SCALED, vsync=1)
     set_resolution(window, c["window_resolution"])
     
     return window
@@ -105,29 +105,12 @@ def set_resolution(window, resolution):
         
         window = pg.display.set_mode(x)
 
-def createObject(d_objects, object, spriteGroup=None):
-    """
-    Cria objetos.
-    
-    Parâmetros:
-        d_objects (dict) - dicionário de objetos
-        object (classe de objetos) - objeto criado
-        spriteGroup (pygame.sprite.LayeredUpdates) - grupo de sprites
-    
-    Return:
-        d_objects atualizado
-    """
-    
-    d_objects[object.name] = object
-    if spriteGroup != None: spriteGroup.add(object, layer=object.zOrder)
-
-def drawInScreen(window, spriteGroup):
+def drawInScreen(window):
     """
     Renderiza objetos na tela.
     
     Parâmetros:
         window (pygame.surface.Surface) - janela do pygame
-        spriteGroup (pygame.sprite.LayeredUpdates) - grupo de sprites
     
     Return:
         Objetos renderizados na janela    
@@ -135,34 +118,34 @@ def drawInScreen(window, spriteGroup):
     
     surface=pg.Surface(c["window_originalSize"])
     surface.fill(c["background_color"])
-    spriteGroup.draw(surface)
+    c["spriteGroup"].draw(surface)
     if c["window_resolution"] > c["monitor_size"][0] - (c["window_originalSize"][0] * c["window_resolution"]):
         window.blit(pg.transform.scale(surface, (c["window_originalSize"][0] * c["window_resolution"], c["window_originalSize"][1] * c["window_resolution"])), c["window_position"])
     else:
         window.blit(pg.transform.scale(surface, (c["window_originalSize"][0] * c["window_resolution"], c["window_originalSize"][1] * c["window_resolution"])), c["window_position"])
 
-def objects_name(d_objects):
+def objects_name():
     """
     Varre e captura nome da cada objeto.
     
     Parâmetros:
-        d_objects (dict) - dicionário de objetos
+        Nenhum
     
     Return:
         Lista com nome dos objetos
     """
     
     l_names = []
-    for i in d_objects: l_names.append(d_objects[i].name)
+    for i in c["d_objects"]: l_names.append(c["d_objects"][i].name)
     
     return l_names
 
-def objects_position(d_objects):
+def objects_position():
     """
     Varre e captura nome e posição da cada objeto.
     
     Parâmetros:
-        d_objects (dict) - dicionário de objetos
+        Nenhum
     
     Return:
         String com informações 
@@ -170,14 +153,38 @@ def objects_position(d_objects):
     
     positions = ""
     counter = 0
-    for i in d_objects: 
+    for i in c["d_objects"]: 
         counter += 1
-        if counter == len(d_objects):
-            positions += d_objects[i].name + ": [" + str(d_objects[i].rect.x) + ", " + str(d_objects[i].rect.y) + "]"
+        if counter == len(c["d_objects"]):
+            positions += c["d_objects"][i].name + ": [" + str(c["d_objects"][i].rect.x) + ", " + str(c["d_objects"][i].rect.y) + "]"
         else:
-            positions += d_objects[i].name + ": [" + str(d_objects[i].rect.x) + ", " + str(d_objects[i].rect.y) + "]\n"
+            positions += c["d_objects"][i].name + ": [" + str(c["d_objects"][i].rect.x) + ", " + str(c["d_objects"][i].rect.y) + "]\n"
     
     return positions
+
+def switch_visible(object):
+    """
+    Ativa/desativa visibilidade do objeto.
+    
+    Parâmetros:
+        object (Text ou SpriteObject) - objeto do jogo
+    
+    Return:
+        Visibilidade do objeto
+    """
+    
+    if str(type(object)) == "<class 'game_utils.Text'>":
+        if object.visible == True:
+            object.visible = False
+        else:
+            object.visible = True 
+    elif str(type(object)) == "<class 'game_utils.SpriteObject'>":
+        if object.visible == True:
+            object.visible = False
+            c["spriteGroup"].remove(object)
+        else:
+            object.visible = True
+            c["spriteGroup"].add(object, layer=object.zOrder)
 
 def flipSurface(surface, x=True, y=False):
     """
@@ -195,18 +202,70 @@ def flipSurface(surface, x=True, y=False):
     surface = pg.transform.flip(surface, x, y)
     
     return surface
+
+def set_opacity(surface, opacity):
+    """
+    Atualiza a opacidada de uma imagem.
+    
+    Parâmetros:
+        surface (pygame.surface.Surface) - imagem
+    
+    Return:
+        Opacidade da imagem atualizada
+    """
+    
+    surface.set_alpha(opacity)
+
+def pause(fade=False):
+    """
+    Pausa/despausa o jogo.
+    
+    Parâmetros:
+        fade (tuple) - d_objects e spriteGroup
+    
+    Return:
+        Troca a flag de jogo pausado
+    """
+    
+    if c["game_paused"]: 
+        try: destroyObject(c["d_objects"]["fade_pause"])
+        except: None
+        c["game_paused"] = False
+    else:
+        if fade:
+            fade_pause = SpriteObject("fade_pause", image=pg.Surface(c["window_originalSize"]), zOrder=1000)
+            set_opacity(c["d_objects"]["fade_pause"].image, 90)
+        c["game_paused"] = True
+
+def destroyObject(object):
+    """
+    Destrói um objeto do jogo.
+    
+    Parâmetros:
+        object (Text ou SpriteObject) - objeto do jogo
+    
+    Return:
+        Objeto apagado de d_objects/spriteGroup
+    """
+    
+    if str(type(object)) == "<class 'game_utils.Text'>":
+        del c["d_objects"][object.name]
+    elif str(type(object)) == "<class 'game_utils.SpriteObject'>":
+        c["spriteGroup"].remove(object)
+        del c["d_objects"][object.name]
  
-class Text:
+class Text():
     """
     Classe para criação de objetos do tipo Text.
     """
-    def __init__(self, name, font="Comic Sans", size=16, color=[255, 255, 255], text="Olá mundo!", position=[0, 0], visible=True, zOrder=0):
+    def __init__(self, name, save=True, font="Comic Sans", size=16, color=[255, 255, 255], text="Olá mundo!", position=[0, 0], visible=True, zOrder=0):
         """
         Constrói objeto Text.
         
         Parâmetros:
             self (game_utils.Text) - objeto da classe Text
             name (str) - nome do objeto
+            save (bool) - adiciona objeto em d_objects
             font (str) - nome da fonte
             size (int) - tamanho da fonte
             color (list) - cor da fonte
@@ -227,6 +286,9 @@ class Text:
         self.position = position
         self.visible = visible
         self.zOrder = zOrder
+        
+        if save:
+            c["d_objects"][self.name] = self
     
     def draw(self, window):
         """
@@ -245,34 +307,19 @@ class Text:
             for i in range(len(lines)):
                 position = (self.position[0], (self.size + 4) * i)
                 window.blit(self.font.render(lines[i], True, self.color), position)
- 
-    def switch_visible(self):
-        """
-        Ativa/desativa visibilidade do objeto.
-        
-        Parâmetros:
-            self (game_utils.Text) - objeto da classe Text
-        
-        Return:
-            Visibilidade do objeto
-        """
-        
-        if self.visible == True:
-            self.visible = False
-        else:
-            self.visible = True
 
 class SpriteObject(pg.sprite.Sprite):
     """
     Classe para criação de objetos do tipo SpriteObject.
     """
-    def __init__(self, name, position=[0, 0], image=pg.Surface((16, 16)), animations={}, visible=True, zOrder=0):
+    def __init__(self, name, save=True, position=[0, 0], image=pg.Surface((16, 16)), animations={}, visible=True, zOrder=0):
         """
         Constrói objeto SpriteObject.
         
         Parâmetros:
             self (game_utils.Text) - objeto da classe Text
             name (str) - nome do objeto
+            save (bool) - adiciona objeto em d_objects
             rect (pygame.rect.Rect) - objeto pygame para armazenar coordenadas retangulares
             image (pygame.surface.Surface) - objeto pygame para representar imagens
             animations (dict) - dicionário com todas as sprites/animações
@@ -291,18 +338,7 @@ class SpriteObject(pg.sprite.Sprite):
         self.animations = animations
         self.visible = visible
         self.zOrder = zOrder
-    
-    def draw(self, window):
-        """
-        Renderiza objetos do tipo SpriteObject.
         
-        Parâmetros:
-            self (game_utils.SpriteObject) - objeto da classe SpriteObject
-            window (pygame.surface.Surface) - janela do pygame
-        
-        Return:
-            Objeto renderizado na janela
-        """
-        
-        if self.visible == True:
-            window.blit(self.image, self.position)
+        if save:
+            c["d_objects"][self.name] = self
+            c["spriteGroup"].add(self, layer=self.zOrder)

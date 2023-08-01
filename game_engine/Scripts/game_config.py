@@ -5,10 +5,13 @@ import screeninfo
 d_gameConfig = {
         "game_name": "Galactic Racer",
         "window_originalSize": (256, 240),
-        "window_resolution": 2,
+        "window_resolution": 1,
         "monitor_size": (screeninfo.get_monitors()[0].width, screeninfo.get_monitors()[0].height),
         "window_position": (0, 0),
         "FPS": 60,
+        "d_objects": {},
+        "spriteGroup": pg.sprite.LayeredUpdates(),
+        "game_paused": False,
         "dir_assets": os.getcwd()[:-8] + r"\Assets",
         "background_color": (128, 128, 128),
         "scene": "stage 1",
@@ -24,4 +27,7 @@ d_gameConfig = {
         "key_downArrow": pg.K_DOWN,
         "key_r": pg.K_r,
         "key_t": pg.K_t,
+        "key_return": pg.K_RETURN,
+        "key_z": pg.K_z,
+        "key_x": pg.K_x,
     }
