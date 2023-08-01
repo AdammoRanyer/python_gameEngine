@@ -106,20 +106,20 @@ def play_scene(canRender, d_objects, spriteGroup, scene):
             if(gu.checkInput_event(event, c["key_t"])): debugText_0.switch_visible()
 
         if canRender:
+            if(gu.checkInput(c["key_rightArrow"])): d_objects["p1"].rect.x+=2
+            if(gu.checkInput(c["key_leftArrow"])): d_objects["p1"].rect.x-=2
+            if(gu.checkInput(c["key_upArrow"])): d_objects["p1"].rect.y-=2
+            if(gu.checkInput(c["key_downArrow"])): d_objects["p1"].rect.y+=2        
+        
             d_objects["bg_0"].rect.y+=2
             if d_objects["bg_0"].rect.y >= 240:
                 d_objects["bg_0"].rect.y = 0
             d_objects["bg_1"].rect.y = d_objects["bg_0"].rect.y-240            
             
-            if(gu.checkInput(c["key_rightArrow"])): d_objects["p1"].rect.x+=2
-            if(gu.checkInput(c["key_leftArrow"])): d_objects["p1"].rect.x-=2
-            if(gu.checkInput(c["key_upArrow"])): d_objects["p1"].rect.y-=2
-            if(gu.checkInput(c["key_downArrow"])): d_objects["p1"].rect.y+=2
-            
             gu.drawInScreen(window, spriteGroup)
 
 window = gu.start_game()
-#clock = pg.time.Clock()
+clock = pg.time.Clock()
 frame = 1 / c["FPS"]
 canRender = True
 unprocessed = 0
